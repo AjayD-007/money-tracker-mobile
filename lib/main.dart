@@ -32,6 +32,7 @@ class WebShellScreen extends StatefulWidget {
 
 class _WebShellScreenState extends State<WebShellScreen> {
   late final WebViewController _controller;
+  bool _isLoading = true;
   // Use Vercel URL in production, and 10.0.2.2 for local emulator testing
   final String _webUrl = kReleaseMode 
       ? 'https://fta-web-view.vercel.app' 
@@ -43,6 +44,17 @@ class _WebShellScreenState extends State<WebShellScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
+        ),
+      )
       ..addJavaScriptChannel(
         'FileUploadChannel',
         onMessageReceived: (JavaScriptMessage message) {
@@ -132,6 +144,35 @@ class _WebShellScreenState extends State<WebShellScreen> {
           child: Stack(
             children: [
               WebViewWidget(controller: _controller),
+              
+              // Native Splash Screen Overlay
+              IgnorePointer(
+                ignoring: !_isLoading, // Let touches pass through when hidden
+                child: AnimatedOpacity(
+                  opacity: _isLoading ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: Container(
+                    color: const Color(0xFF121212), // Dark theme background
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/icon.png',
+                            width: 120,
+                            height: 120,
+                          ),
+                          const SizedBox(height: 32),
+                          const CircularProgressIndicator(
+                            color: Colors.greenAccent,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
               Positioned(
                 top: 0,
                 right: 0,
