@@ -34,7 +34,7 @@ class _WebShellScreenState extends State<WebShellScreen> {
   late final WebViewController _controller;
   // Use Vercel URL in production, and 10.0.2.2 for local emulator testing
   final String _webUrl = kReleaseMode 
-      ? 'https://finance-tracker.vercel.app' 
+      ? 'https://fta-web-view.vercel.app' 
       : 'http://10.0.2.2:3000';
 
   @override
@@ -80,6 +80,40 @@ class _WebShellScreenState extends State<WebShellScreen> {
       ..loadRequest(Uri.parse(_webUrl));
   }
 
+  void _showDevDialog() {
+    final TextEditingController ipController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Dev Mode'),
+        content: TextField(
+          controller: ipController,
+          decoration: const InputDecoration(
+            hintText: 'e.g. 192.168.1.5',
+            labelText: 'Local IP Address',
+          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final ip = ipController.text.trim();
+              if (ip.isNotEmpty) {
+                _controller.loadRequest(Uri.parse('http://$ip:3000'));
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Go'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,7 +129,23 @@ class _WebShellScreenState extends State<WebShellScreen> {
               SystemNavigator.pop();
             }
           },
-          child: WebViewWidget(controller: _controller),
+          child: Stack(
+            children: [
+              WebViewWidget(controller: _controller),
+              Positioned(
+                top: 0,
+                right: 0,
+                child: GestureDetector(
+                  onLongPress: _showDevDialog,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    color: Colors.transparent,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
