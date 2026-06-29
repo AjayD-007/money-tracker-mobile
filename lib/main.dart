@@ -119,9 +119,16 @@ class _WebShellScreenState extends State<WebShellScreen> {
             );
           }
         },
+      )
+      ..addJavaScriptChannel(
+        'LogoutChannel',
+        onMessageReceived: (JavaScriptMessage message) async {
+          debugPrint('LogoutChannel triggered: clearing cookies');
+          await WebViewCookieManager().clearCookies();
+        },
       );
 
-    _clearCookiesAndLoad();
+    _controller.loadRequest(Uri.parse(_webUrl));
   }
 
   Future<void> _checkForUpdates() async {
@@ -133,15 +140,6 @@ class _WebShellScreenState extends State<WebShellScreen> {
     } catch (e) {
       debugPrint('Update check failed: $e');
     }
-  }
-
-  Future<void> _clearCookiesAndLoad() async {
-    try {
-      await WebViewCookieManager().clearCookies();
-    } catch (e) {
-      debugPrint('Failed to clear cookies: $e');
-    }
-    _controller.loadRequest(Uri.parse(_webUrl));
   }
 
   void _showDevDialog() {
