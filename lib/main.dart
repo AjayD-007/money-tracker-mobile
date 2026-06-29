@@ -37,6 +37,8 @@ class WebShellScreen extends StatefulWidget {
 class _WebShellScreenState extends State<WebShellScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
+  DateTime? currentBackPressTime;
+  
   // Use Vercel URL in production, and 10.0.2.2 for local emulator testing
   final String _webUrl = kReleaseMode 
       ? 'https://fta-web-view.vercel.app' 
@@ -188,12 +190,30 @@ class _WebShellScreenState extends State<WebShellScreen> {
             if (await _controller.canGoBack()) {
               await _controller.goBack();
             } else {
-              SystemNavigator.pop();
+              DateTime now = DateTime.now();
+              if (currentBackPressTime == null || 
+                  now.difference(currentBackPressTime!) > const Duration(seconds: 2)) {
+                currentBackPressTime = now;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Press back again to exit'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } else {
+                SystemNavigator.pop();
+              }
             }
           },
           child: Stack(
             children: [
-              WebViewWidget(controller: _controller),
+              RefreshIndicator(
+                onRefresh: () async {
+                  await _controller.reload();
+                },
+                child: WebViewWidget(controller: _controller),
+              ),
               
               // Native Splash Screen Overlay
               IgnorePointer(
