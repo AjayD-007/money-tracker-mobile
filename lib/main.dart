@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:convert';
+import 'dart:io';
 
 void main() {
   runApp(const MoneyTrackerApp());
@@ -57,8 +60,33 @@ class _WebShellScreenState extends State<WebShellScreen> {
       )
       ..addJavaScriptChannel(
         'FileUploadChannel',
-        onMessageReceived: (JavaScriptMessage message) {
+        onMessageReceived: (JavaScriptMessage message) async {
           debugPrint('FileUploadChannel received: ${message.message}');
+          if (message.message == 'open') {
+            try {
+              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                type: FileType.custom,
+                allowedExtensions: ['xls', 'xlsx'],
+              );
+
+              if (result != null && result.files.single.path != null) {
+                File file = File(result.files.single.path!);
+                List<int> bytes = await file.readAsBytes();
+                String base64String = base64Encode(bytes);
+                
+                if (mounted) {
+                  _controller.runJavaScript("if (window.onNativeFileSelected) { window.onNativeFileSelected('$base64String'); }");
+                }
+              }
+            } catch (e) {
+              debugPrint('Error picking file: $e');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to pick file')),
+                );
+              }
+            }
+          }
         },
       )
       ..addJavaScriptChannel(
