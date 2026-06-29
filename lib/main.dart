@@ -3,6 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:in_app_update/in_app_update.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -44,6 +45,8 @@ class _WebShellScreenState extends State<WebShellScreen> {
   @override
   void initState() {
     super.initState();
+    _checkForUpdates();
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
@@ -82,7 +85,7 @@ class _WebShellScreenState extends State<WebShellScreen> {
               debugPrint('Error picking file: $e');
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to pick file')),
+                  const SnackBar(content: Text('Failed to pick file')),
                 );
               }
             }
@@ -116,8 +119,29 @@ class _WebShellScreenState extends State<WebShellScreen> {
             );
           }
         },
-      )
-      ..loadRequest(Uri.parse(_webUrl));
+      );
+
+    _clearCookiesAndLoad();
+  }
+
+  Future<void> _checkForUpdates() async {
+    try {
+      AppUpdateInfo info = await InAppUpdate.checkForUpdate();
+      if (info.updateAvailability == UpdateAvailability.updateAvailable) {
+        await InAppUpdate.performImmediateUpdate();
+      }
+    } catch (e) {
+      debugPrint('Update check failed: $e');
+    }
+  }
+
+  Future<void> _clearCookiesAndLoad() async {
+    try {
+      await WebViewCookieManager().clearCookies();
+    } catch (e) {
+      debugPrint('Failed to clear cookies: $e');
+    }
+    _controller.loadRequest(Uri.parse(_webUrl));
   }
 
   void _showDevDialog() {
