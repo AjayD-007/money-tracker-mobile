@@ -1,3 +1,14 @@
+buildscript {
+    ext.kotlin_version = '2.1.0'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -11,6 +22,33 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+subprojects {
+    // Inject a dummy flutter property so that plugins like file_picker don't crash
+    // during evaluation when they look for flutter.compileSdkVersion
+    project.ext.flutter = [
+        compileSdkVersion: 36,
+        minSdkVersion: 21,
+        targetSdkVersion: 36
+    ]
+    
+    // Force Kotlin resolution to prevent BuildFlowService crash from file_picker's 1.8.22
+    // and metadata version crash from in_app_update's 2.2.0 dependencies
+    project.buildscript {
+        configurations.all {
+            resolutionStrategy {
+                force "org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0"
+            }
+        }
+    }
+    configurations.all {
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'org.jetbrains.kotlin') {
+                details.useVersion "2.1.0"
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

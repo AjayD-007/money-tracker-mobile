@@ -69,7 +69,7 @@ class _WebShellScreenState extends State<WebShellScreen> {
           debugPrint('FileUploadChannel received: ${message.message}');
           if (message.message == 'open') {
             try {
-              FilePickerResult? result = await FilePicker.platform.pickFiles(
+              FilePickerResult? result = await FilePicker.pickFiles(
                 type: FileType.custom,
                 allowedExtensions: ['xls', 'xlsx'],
               );
